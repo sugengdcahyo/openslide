@@ -25,7 +25,7 @@ from io import BytesIO
 import os
 from threading import Lock
 import zlib
-
+from flask_cors import CORS  
 from PIL import ImageCms
 from flask import Flask, abort, make_response, render_template, url_for
 
@@ -63,6 +63,7 @@ SRGB_PROFILE = ImageCms.getOpenProfile(BytesIO(SRGB_PROFILE_BYTES))
 def create_app(config=None, config_file=None):
     # Create and configure app
     app = Flask(__name__)
+    CORS(app)  # Apply CORS to your Flask app
     app.config.from_mapping(
         SLIDE_DIR='.',
         SLIDE_CACHE_SIZE=30,
@@ -128,11 +129,13 @@ def create_app(config=None, config_file=None):
 
     @app.route('/<path:path>.dzi')
     def dzi(path):
-        print(path)
         slide = get_slide(path)
         format = app.config['DEEPZOOM_FORMAT']
         resp = make_response(slide.get_dzi(format))
         resp.mimetype = 'application/xml'
+        resp.headers['Content-Disposition'] = f'attachment; filename={os.path.splitext(path)[0]}.dzi'
+        resp.mimetype = "application/xml"
+        resp.headers['Access-Control-Allow-Origin'] = '*'  # Allow requests from any origin
         return resp
 
     @app.route('/<path:path>_files/<int:level>/<int:col>_<int:row>.<format>')
